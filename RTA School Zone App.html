@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RTA School Zone Navigator</title>
+    <style>
+        :root {
+            --rta-red: #E31E24;
+            --rta-red-dark: #C01A1F;
+            --rta-red-light: #FF3B3F;
+            --rta-gray: #2C2C2C;
+            --rta-light-gray: #F5F5F5;
+            --text-dark: #1a1a1a;
+            --text-light: #666;
+            --shadow: 0 4px 12px rgba(227, 30, 36, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .phone-container {
+            width: 100%;
+            max-width: 400px;
+            background: #000;
+            border-radius: 45px;
+            padding: 18px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+            position: relative;
+        }
+
+        .phone-notch {
+            position: absolute;
+            top: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 30px;
+            background: #000;
+            border-radius: 0 0 20px 20px;
+            z-index: 100;
+        }
+
+        .phone-screen {
+            background: #fff;
+            border-radius: 35px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+            height: 750px;
+        }
+
+        .status-bar {
+            height: 40px;
+            background: var(--rta-red);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .app-header {
+            background: var(--rta-red);
+            padding: 15px 20px;
+            color: white;
+        }
+
+        .app-header h1 {
+            font-size: 22px;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        .app-header p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .mode-selector {
+            display: flex;
+            background: white;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 15px;
+            background: white;
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .mode-btn.active {
+            color: var(--rta-red);
+        }
+
+        .mode-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--rta-red);
+        }
+
+        .mode-icon {
+            font-size: 20px;
+        }
+
+        .map-container {
+            position: relative;
+            height: 300px;
+            background: linear-gradient(135deg, #f0f7f8 0%, #e8f4f5 100%);
+            overflow: hidden;
+        }
+
+        .map-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .map-placeholder {
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(0deg, #ddd 0px, #ddd 1px, transparent 1px, transparent 20px),
+                repeating-linear-gradient(90deg, #ddd 0px, #ddd 1px, transparent 1px, transparent 20px);
+            position: relative;
+        }
+
+        .school-marker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: var(--rta-red);
+            border-radius: 50% 50% 50% 0;
+            transform-origin: center;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(227, 30, 36, 0.4);
+            animation: markerBounce 2s infinite;
+        }
+
+        .school-marker::before {
+            content: '🏫';
+            font-size: 24px;
+            transform: rotate(45deg);
+        }
+
+        @keyframes markerBounce {
+            0%, 100% { transform: translate(-50%, -50%) rotate(-45deg) translateY(0); }
+            50% { transform: translate(-50%, -50%) rotate(-45deg) translateY(-10px); }
+        }
+
+        .route-line {
+            position: absolute;
+            height: 3px;
+            background: linear-gradient(90deg, var(--rta-red) 0%, transparent 100%);
+            animation: routeAnimate 2s infinite;
+        }
+
+        @keyframes routeAnimate {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+
+        .info-panel {
+            padding: 20px;
+            background: white;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .info-card {
+            background: var(--rta-light-gray);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--rta-red);
+        }
+
+        .info-card h3 {
+            font-size: 15px;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: var(--text-dark);
+            font-weight: 700;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-green {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+
+        .badge-yellow {
+            background: #FFF3E0;
+            color: #E65100;
+        }
+
+        .badge-red {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+
+        .exit-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .exit-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #f0f0f0;
+            transition: all 0.2s;
+        }
+
+        .exit-item:hover {
+            border-color: var(--rta-red);
+            box-shadow: var(--shadow);
+        }
+
+        .exit-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 14px;
+        }
+
+        .parking-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .parking-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .parking-available {
+            background: #4CAF50;
+        }
+
+        .parking-limited {
+            background: #FF9800;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .action-button {
+            width: 100%;
+            padding: 15px;
+            background: var(--rta-red);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .action-button:active {
+            background: var(--rta-red-dark);
+            transform: scale(0.98);
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .metric-box {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #f0f0f0;
+        }
+
+        .metric-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--rta-red);
+            margin-bottom: 4px;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: var(--text-light);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .alert-banner {
+            background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: start;
+            gap: 10px;
+            margin-bottom: 12px;
+            border: 2px solid #FFB74D;
+        }
+
+        .alert-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #E65100;
+            margin-bottom: 4px;
+        }
+
+        .alert-text {
+            font-size: 12px;
+            color: #8d5a00;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f0f0f0;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--rta-red);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-container">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+            <div class="status-bar">
+                <span>9:41</span>
+                <span>📶 5G ⚡ 89%</span>
+            </div>
+
+            <div class="app-header">
+                <h1>RTA School Zone Navigator</h1>
+                <p>Smart Traffic Management System</p>
+            </div>
+
+            <div class="mode-selector">
+                <button class="mode-btn active" onclick="switchMode('driver')" data-mode="driver">
+                    <span class="mode-icon">🚗</span>
+                    <span>Driver</span>
+                </button>
+                <button class="mode-btn" onclick="switchMode('pedestrian')" data-mode="pedestrian">
+                    <span class="mode-icon">🚶</span>
+                    <span>Pedestrian</span>
+                </button>
+                <button class="mode-btn" onclick="switchMode('parent')" data-mode="parent">
+                    <span class="mode-icon">👨‍👩‍👧</span>
+                    <span>Parent</span>
+                </button>
+            </div>
+
+            <div class="map-container">
+                <div class="map-placeholder">
+                    <div class="school-marker"></div>
+                    <div class="route-line" style="top: 50%; left: 30%; width: 100px; transform: rotate(45deg);"></div>
+                    <div class="route-line" style="top: 50%; left: 60%; width: 80px; transform: rotate(-30deg);"></div>
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <!-- Driver Mode -->
+                <div id="driver-content" class="mode-content">
+                    <div class="metric-grid">
+                        <div class="metric-box">
+                            <div class="metric-value" id="driver-eta">8 min</div>
+                            <div class="metric-label">ETA</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value" id="driver-distance">2.3 km</div>
+                            <div class="metric-label">Distance</div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>🎯 Recommended Route</h3>
+                        <div class="info-row">
+                            <span class="info-label">Fastest Exit</span>
+                            <span class="info-value">Exit East</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Traffic Status</span>
+                            <span class="status-badge badge-green">Light</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Time Saved</span>
+                            <span class="info-value" style="color: #4CAF50;">+4 min</span>
+                        </div>
+                    </div>
+
+                    <div class="exit-list">
+                        <div class="exit-item">
+                            <div>
+                                <div class="exit-name">Exit North</div>
+                                <div style="font-size: 11px; color: #999; margin-top: 2px;">Via Al Barsha Rd</div>
+                            </div>
+                            <span class="status-badge badge-yellow">Moderate</span>
+                        </div>
+                        <div class="exit-item">
+                            <div>
+                                <div class="exit-name">Exit South</div>
+                                <div style="font-size: 11px; color: #999; margin-top: 2px;">Via Sheikh Zayed Rd</div>
+                            </div>
+                            <span class="status-badge badge-red">Heavy</span>
+                        </div>
+                    </div>
+
+                    <button class="action-button" onclick="startNavigation()">
+                        <span>📍</span>
+                        <span>Start Navigation</span>
+                    </button>
+                </div>
+
+                <!-- Pedestrian Mode -->
+                <div id="pedestrian-content" class="mode-content hidden">
+                    <div class="metric-grid">
+                        <div class="metric-box">
+                            <div class="metric-value" id="walk-time">12 min</div>
+                            <div class="metric-label">Walk Time</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value" id="walk-distance">950 m</div>
+                            <div class="metric-label">Distance</div>
+                        </div>
+                    </div>
+
+                    <div class="alert-banner">
+                        <span class="alert-icon">⚠️</span>
+                        <div class="alert-content">
+                            <div class="alert-title">Pedestrian Priority Active</div>
+                            <div class="alert-text">Crosswalks near school zone have extended crossing times</div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>🚶 Safest Walking Route</h3>
+                        <div class="info-row">
+                            <span class="info-label">Crosswalks</span>
+                            <span class="info-value">3 safe crossings</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Sidewalk Status</span>
+                            <span class="status-badge badge-green">Clear</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Shade Coverage</span>
+                            <span class="info-value">65%</span>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>🚦 Traffic Light Status</h3>
+                        <div class="info-row">
+                            <span class="info-label">Next Crossing</span>
+                            <span class="info-value" style="color: #4CAF50;">🟢 45 sec</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Crossing Time</span>
+                            <span class="info-value">25 sec</span>
+                        </div>
+                    </div>
+
+                    <button class="action-button" onclick="startWalking()">
+                        <span>👣</span>
+                        <span>Start Walking Directions</span>
+                    </button>
+                </div>
+
+                <!-- Parent Mode -->
+                <div id="parent-content" class="mode-content hidden">
+                    <div class="metric-grid">
+                        <div class="metric-box">
+                            <div class="metric-value" id="pickup-eta">6 min</div>
+                            <div class="metric-label">Pickup ETA</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value" id="wait-time">2.5 min</div>
+                            <div class="metric-label">Est. Wait</div>
+                        </div>
+                    </div>
+
+                    <div class="alert-banner">
+                        <span class="alert-icon">🚌</span>
+                        <div class="alert-content">
+                            <div class="alert-title">Bus Bay Parking Available</div>
+                            <div class="alert-text">7 spaces available at Exit East parking area</div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>📍 Drop-off Zone Status</h3>
+                        <div class="exit-list">
+                            <div class="exit-item">
+                                <div>
+                                    <div class="exit-name">North Zone</div>
+                                    <div style="font-size: 11px; color: #999; margin-top: 2px;">Queue: 12 vehicles</div>
+                                </div>
+                                <span class="status-badge badge-yellow">3-5 min</span>
+                            </div>
+                            <div class="exit-item">
+                                <div>
+                                    <div class="exit-name">East Zone (Recommended)</div>
+                                    <div style="font-size: 11px; color: #999; margin-top: 2px;">Queue: 5 vehicles</div>
+                                </div>
+                                <span class="status-badge badge-green">1-2 min</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>🅿️ Parking Availability</h3>
+                        <div class="parking-indicator">
+                            <div class="parking-dot parking-available"></div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; font-size: 13px; color: var(--text-dark);">Bus Bay Area - Available</div>
+                                <div style="font-size: 11px; color: var(--text-light); margin-top: 2px;">7 of 15 spaces free</div>
+                            </div>
+                        </div>
+                        <div class="parking-indicator">
+                            <div class="parking-dot parking-limited"></div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; font-size: 13px; color: var(--text-dark);">Main Parking - Limited</div>
+                                <div style="font-size: 11px; color: var(--text-light); margin-top: 2px;">2 of 20 spaces free</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>👶 Child Status</h3>
+                        <div class="info-row">
+                            <span class="info-label">Student Name</span>
+                            <span class="info-value">Ahmed M.</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Dismissal Time</span>
+                            <span class="info-value">2:45 PM</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Ready Status</span>
+                            <span class="status-badge badge-green">Ready</span>
+                        </div>
+                    </div>
+
+                    <button class="action-button" onclick="notifyArrival()">
+                        <span>🔔</span>
+                        <span>Notify Arrival to School</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchMode(mode) {
+            // Update active button
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+
+            // Hide all content
+            document.querySelectorAll('.mode-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            // Show selected mode content
+            document.getElementById(`${mode}-content`).classList.remove('hidden');
+
+            // Update metrics with slight variation
+            updateMetrics(mode);
+        }
+
+        function updateMetrics(mode) {
+            const variations = {
+                driver: {
+                    eta: [6, 8, 10, 7],
+                    distance: [2.1, 2.3, 2.5, 1.9]
+                },
+                pedestrian: {
+                    time: [10, 12, 14, 11],
+                    distance: [850, 950, 1100, 900]
+                },
+                parent: {
+                    eta: [5, 6, 8, 7],
+                    wait: [2, 2.5, 3, 1.8]
+                }
+            };
+
+            if (mode === 'driver') {
+                const idx = Math.floor(Math.random() * 4);
+                document.getElementById('driver-eta').textContent = variations.driver.eta[idx] + ' min';
+                document.getElementById('driver-distance').textContent = variations.driver.distance[idx] + ' km';
+            } else if (mode === 'pedestrian') {
+                const idx = Math.floor(Math.random() * 4);
+                document.getElementById('walk-time').textContent = variations.pedestrian.time[idx] + ' min';
+                document.getElementById('walk-distance').textContent = variations.pedestrian.distance[idx] + ' m';
+            } else if (mode === 'parent') {
+                const idx = Math.floor(Math.random() * 4);
+                document.getElementById('pickup-eta').textContent = variations.parent.eta[idx] + ' min';
+                document.getElementById('wait-time').textContent = variations.parent.wait[idx] + ' min';
+            }
+        }
+
+        function startNavigation() {
+            alert('🚗 Navigation started to Exit East via fastest route!\n\nYou will save approximately 4 minutes compared to the default route.');
+        }
+
+        function startWalking() {
+            alert('👣 Walking directions activated!\n\nFollow the pedestrian-priority route with 3 safe crosswalks.');
+        }
+
+        function notifyArrival() {
+            alert('🔔 Arrival notification sent!\n\nThe school has been notified that you are arriving at East Zone in 6 minutes.');
+        }
+
+        // Simulate real-time updates every 5 seconds
+        setInterval(() => {
+            const activeMode = document.querySelector('.mode-btn.active').dataset.mode;
+            const variation = (Math.random() - 0.5) * 2;
+            
+            if (activeMode === 'driver') {
+                const currentETA = parseInt(document.getElementById('driver-eta').textContent);
+                document.getElementById('driver-eta').textContent = Math.max(5, Math.round(currentETA + variation)) + ' min';
+            } else if (activeMode === 'pedestrian') {
+                const currentTime = parseInt(document.getElementById('walk-time').textContent);
+                document.getElementById('walk-time').textContent = Math.max(8, Math.round(currentTime + variation)) + ' min';
+            } else if (activeMode === 'parent') {
+                const currentETA = parseInt(document.getElementById('pickup-eta').textContent);
+                document.getElementById('pickup-eta').textContent = Math.max(3, Math.round(currentETA + variation)) + ' min';
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
